@@ -42,18 +42,18 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "makesomething ☀️",
-  description: "build your first app with ai. look what i made!",
+  title: "identitree",
+  description: "an interactive identity tree mapping fruits, quests, activities, and root skills.",
   metadataBase: new URL("https://makesomething.so"),
   openGraph: {
-    title: "makesomething ☀️",
-    description: "look what i made!",
-    siteName: "makesomething",
+    title: "identitree",
+    description: "an interactive identity tree mapping fruits, quests, activities, and root skills.",
+    siteName: "identitree",
   },
   twitter: {
     card: "summary_large_image",
-    title: "makesomething ☀️",
-    description: "look what i made!",
+    title: "identitree",
+    description: "an interactive identity tree mapping fruits, quests, activities, and root skills.",
   },
 };
 
