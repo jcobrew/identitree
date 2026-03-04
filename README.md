@@ -10,6 +10,15 @@ this repo is what you'll use to build yours. it comes with everything pre-config
 
 you just need a laptop, a chatgpt account (free version works), and an idea. if you don't have an idea yet, no worries — the agent will help you think of one.
 
+## attribution
+
+this project is based on the **make something** starter repo by filip pilar:
+
+- upstream: https://github.com/filip-pilar/makesomething
+- this repo: custom **identitree** development by `jcobrew` / `jacobbsolana`
+
+for details on what is inherited vs custom, see [`ATTRIBUTION.md`](./ATTRIBUTION.md).
+
 ## who this is for
 
 - complete beginners — zero coding knowledge needed
