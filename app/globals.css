@@ -14,3 +14,22 @@
   --font-bricolage: var(--font-bricolage), system-ui, sans-serif;
   --font-instrument-serif: var(--font-instrument-serif), Georgia, serif;
 }
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: #f6f3ed;
+}
+
+body {
+  min-height: 100vh;
+  background: #f6f3ed;
+  color: #171411;
+}
+
+::selection {
+  background: rgba(23, 20, 17, 0.14);
+  color: #171411;
+}

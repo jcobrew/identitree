@@ -43,17 +43,17 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "identitree",
-  description: "an interactive identity tree mapping fruits, quests, activities, and root skills.",
+  description: "a thread-first reflection app where the mirror shapes one shared identity tree of interests, identities, quests, skills, and actions.",
   metadataBase: new URL("https://makesomething.so"),
   openGraph: {
     title: "identitree",
-    description: "an interactive identity tree mapping fruits, quests, activities, and root skills.",
+    description: "a thread-first reflection app where the mirror shapes one shared identity tree of interests, identities, quests, skills, and actions.",
     siteName: "identitree",
   },
   twitter: {
     card: "summary_large_image",
     title: "identitree",
-    description: "an interactive identity tree mapping fruits, quests, activities, and root skills.",
+    description: "a thread-first reflection app where the mirror shapes one shared identity tree of interests, identities, quests, skills, and actions.",
   },
 };
 
