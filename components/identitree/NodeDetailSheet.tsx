@@ -21,6 +21,7 @@ export function NodeDetailSheet({
   bridgeEdges,
   mergeTargets,
   onOpenThread,
+  onStartThreadFromNode,
   onPatchNode,
   onReviewEdge,
 }: {
@@ -30,6 +31,7 @@ export function NodeDetailSheet({
   bridgeEdges: TreeEdge[];
   mergeTargets: TreeNode[];
   onOpenThread: (threadId: string) => void;
+  onStartThreadFromNode: () => void;
   onPatchNode: (payload: { label?: string; insight?: string; archived?: boolean; mergeIntoId?: string }) => void;
   onReviewEdge: (edgeId: string, decision: "accept" | "reject") => void;
 }) {
@@ -72,6 +74,9 @@ export function NodeDetailSheet({
                 {thread.title}
               </Button>
             ))}
+            <Button radius="full" variant="flat" className="bg-white/8 text-white" onPress={onStartThreadFromNode}>
+              start new thread from node
+            </Button>
           </div>
         </div>
 

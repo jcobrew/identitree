@@ -23,6 +23,7 @@ export function ThreadWorkspace({
   onSend,
   onOpenTree,
   onFocusNode,
+  onOpenThreadSettings,
 }: {
   thread: Thread;
   suggestions: string[];
@@ -35,19 +36,28 @@ export function ThreadWorkspace({
   onSend: () => void;
   onOpenTree: () => void;
   onFocusNode: (nodeId: string) => void;
+  onOpenThreadSettings: () => void;
 }) {
   return (
     <div className="grid h-[calc(100vh-88px)] gap-6 overflow-hidden bg-[#f6f3ed] px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1.25fr)_360px] lg:px-8">
       <Card className="flex min-h-0 flex-col border border-black/5 bg-white/86 shadow-[0_20px_50px_rgba(32,24,18,0.05)]">
         <CardHeader className="flex-col items-start gap-3 border-b border-black/6 pb-5">
           <p className="text-[11px] uppercase tracking-[0.22em] text-black/35">active thread</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="font-[family-name:var(--font-instrument-serif)] text-[2.4rem] leading-none text-[#171411]">
-              {thread.title}
-            </h2>
-            <Chip radius="full" className="border-none bg-black/5 text-[10px] uppercase tracking-[0.18em] text-black/45">
-              {thread.kind}
-            </Chip>
+          <div className="flex w-full flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="font-[family-name:var(--font-instrument-serif)] text-[2.4rem] leading-none text-[#171411]">
+                {thread.title}
+              </h2>
+              <Chip radius="full" className="border-none bg-black/5 text-[10px] uppercase tracking-[0.18em] text-black/45">
+                {thread.kind}
+              </Chip>
+              <Chip radius="full" className="border-none bg-[#efe8da] text-[10px] uppercase tracking-[0.18em] text-[#5a4a33]">
+                {thread.linkedNodeIds.length} {thread.linkedNodeIds.length === 1 ? "node" : "nodes"}
+              </Chip>
+            </div>
+            <Button radius="full" variant="light" className="text-[#171411]" onPress={onOpenThreadSettings}>
+              thread settings
+            </Button>
           </div>
           <p className="max-w-3xl text-sm leading-7 text-black/58">{thread.topic}</p>
         </CardHeader>

@@ -18,6 +18,7 @@ export function TreeWorkspace({
   onCameraChange,
   onSelectNode,
   onOpenThread,
+  onStartThreadFromNode,
   onPatchNode,
   onReviewEdge,
 }: {
@@ -33,6 +34,7 @@ export function TreeWorkspace({
   onCameraChange: (camera: TreeCamera) => void;
   onSelectNode: (nodeId: string) => void;
   onOpenThread: (threadId: string) => void;
+  onStartThreadFromNode: () => void;
   onPatchNode: (payload: { label?: string; insight?: string; archived?: boolean; mergeIntoId?: string }) => void;
   onReviewEdge: (edgeId: string, decision: "accept" | "reject") => void;
 }) {
@@ -77,6 +79,7 @@ export function TreeWorkspace({
             bridgeEdges={selectedNodeBridgeEdges}
             mergeTargets={mergeTargets}
             onOpenThread={onOpenThread}
+            onStartThreadFromNode={onStartThreadFromNode}
             onPatchNode={onPatchNode}
             onReviewEdge={onReviewEdge}
           />

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { LandingView } from "@/components/identitree/LandingView";
 import { ThreadSwitcherModal } from "@/components/identitree/ThreadSwitcherModal";
+import { ThreadSettingsModal } from "@/components/identitree/ThreadSettingsModal";
 import { ThreadWorkspace } from "@/components/identitree/ThreadWorkspace";
 import { TreeMap } from "@/components/identitree/TreeMap";
 import { TreeWorkspace } from "@/components/identitree/TreeWorkspace";
@@ -40,6 +41,7 @@ export default function Home() {
   const [workspace, setWorkspace] = useState<WorkspaceState | null>(null);
   const [capabilities, setCapabilities] = useState({ anthropic: false, supabase: false });
   const [threadSwitcherOpen, setThreadSwitcherOpen] = useState(false);
+  const [threadSettingsOpen, setThreadSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -200,6 +202,14 @@ export default function Home() {
     await performWorkspaceRequest("/api/threads", {
       method: "POST",
       body: JSON.stringify({ state: currentWorkspace, starter, linkedNodeId }),
+    });
+  };
+
+  const updateThread = async (payload: { title?: string; topic?: string; archived?: boolean }) => {
+    if (!currentThread) return;
+    await performWorkspaceRequest(`/api/threads/${currentThread.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ state: currentWorkspace, ...payload }),
     });
   };
 
@@ -364,6 +374,7 @@ export default function Home() {
                       selectedNodeId: nodeId,
                     }))
                   }
+                  onOpenThreadSettings={() => setThreadSettingsOpen(true)}
                 />
               </motion.div>
             ) : (
@@ -392,6 +403,10 @@ export default function Home() {
                     }))
                   }
                   onOpenThread={openThread}
+                  onStartThreadFromNode={() => {
+                    if (!selectedNode) return;
+                    void createStarterThread("tree-prompted", selectedNode.id);
+                  }}
                   onPatchNode={(payload) => {
                     void patchSelectedNode(payload);
                   }}
@@ -419,6 +434,20 @@ export default function Home() {
             method: "PATCH",
             body: JSON.stringify({ state: currentWorkspace, archived }),
           });
+        }}
+      />
+
+      <ThreadSettingsModal
+        thread={currentThread}
+        isOpen={threadSettingsOpen}
+        onClose={() => setThreadSettingsOpen(false)}
+        onSave={(payload) => {
+          void updateThread(payload);
+          setThreadSettingsOpen(false);
+        }}
+        onToggleArchive={(archived) => {
+          void updateThread({ archived });
+          setThreadSettingsOpen(false);
         }}
       />
 
