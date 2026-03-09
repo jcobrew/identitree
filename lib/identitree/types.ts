@@ -163,6 +163,8 @@ export const threadCreateRequestSchema = z.object({
   title: z.string().trim().min(1).max(72).optional(),
   topic: z.string().trim().min(1).max(160).optional(),
   kind: z.enum(THREAD_KINDS).optional(),
+  starter: z.enum(CHECKIN_KINDS).optional(),
+  linkedNodeId: z.string().trim().min(1).optional(),
 });
 
 export const threadUpdateRequestSchema = z.object({

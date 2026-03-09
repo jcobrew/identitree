@@ -196,6 +196,13 @@ export default function Home() {
     setThreadSwitcherOpen(false);
   };
 
+  const createStarterThread = async (starter: CheckInCard["kind"], linkedNodeId?: string) => {
+    await performWorkspaceRequest("/api/threads", {
+      method: "POST",
+      body: JSON.stringify({ state: currentWorkspace, starter, linkedNodeId }),
+    });
+  };
+
   const sendThreadMessage = async () => {
     if (!currentThread || !currentDraft.trim()) return;
     await performWorkspaceRequest(`/api/threads/${currentThread.id}/messages`, {
@@ -232,6 +239,21 @@ export default function Home() {
 
     if (card.threadId) {
       openThread(card.threadId);
+      return;
+    }
+
+    if (!currentWorkspace.hasCompletedOnboarding) {
+      if (card.kind === "tree-prompted") {
+        updateLocalWorkspace((current) => ({ ...current, view: "tree" }));
+        return;
+      }
+
+      void startReflection();
+      return;
+    }
+
+    if (card.kind === "light" || card.kind === "catch-up") {
+      void createStarterThread(card.kind);
       return;
     }
 
@@ -391,6 +413,12 @@ export default function Home() {
         onSelectThread={openThread}
         onCreateThread={(payload) => {
           void createThread(payload);
+        }}
+        onToggleArchive={(threadId, archived) => {
+          void performWorkspaceRequest(`/api/threads/${threadId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ state: currentWorkspace, archived }),
+          });
         }}
       />
 

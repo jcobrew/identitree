@@ -24,6 +24,7 @@ export function ThreadSwitcherModal({
   onClose,
   onSelectThread,
   onCreateThread,
+  onToggleArchive,
 }: {
   isOpen: boolean;
   threads: Thread[];
@@ -31,6 +32,7 @@ export function ThreadSwitcherModal({
   onClose: () => void;
   onSelectThread: (threadId: string) => void;
   onCreateThread: (payload: { title: string; topic: string; kind: ThreadKind }) => void;
+  onToggleArchive: (threadId: string, archived: boolean) => void;
 }) {
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("");
@@ -73,6 +75,20 @@ export function ThreadSwitcherModal({
                     </Chip>
                   </div>
                   <p className="text-sm leading-7 text-black/48">{thread.preview || "no reflection yet"}</p>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      radius="full"
+                      variant="light"
+                      className="text-black/55"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleArchive(thread.id, !thread.archived);
+                      }}
+                    >
+                      {thread.archived ? "restore" : "archive"}
+                    </Button>
+                  </div>
                 </CardBody>
               </Card>
             ))}

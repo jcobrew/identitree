@@ -11,11 +11,59 @@ import {
   trimSentence,
 } from "@/lib/identitree/seed";
 import type {
+  CheckInKind,
   Thread,
   ThreadKind,
   TreeEdge,
   WorkspaceState,
 } from "@/lib/identitree/types";
+
+const buildThreadPreset = ({
+  starter,
+  topic,
+  title,
+  linkedNodeLabel,
+}: {
+  starter?: CheckInKind;
+  topic?: string;
+  title?: string;
+  linkedNodeLabel?: string;
+}) => {
+  if (starter === "light") {
+    return {
+      title: title?.trim() || "light reflection",
+      topic: topic?.trim() || "what feels most present right now",
+      kind: "reflection" as const,
+      opening: "we can keep this light and honest. what feels most present right now without over-explaining it?",
+    };
+  }
+
+  if (starter === "catch-up") {
+    return {
+      title: title?.trim() || "catch-up",
+      topic: topic?.trim() || "what moved, what stalled, and what still matters",
+      kind: "reflection" as const,
+      opening: "let's gather the last stretch cleanly. what moved, what stalled, and what still matters?",
+    };
+  }
+
+  if (starter === "tree-prompted") {
+    const nodeLabel = linkedNodeLabel?.trim() || "this node";
+    return {
+      title: title?.trim() || `following ${nodeLabel}`,
+      topic: topic?.trim() || `${nodeLabel} and what it is trying to connect`,
+      kind: "quest" as const,
+      opening: `${nodeLabel} is asking for attention. what is it pointing to in lived experience right now?`,
+    };
+  }
+
+  return {
+    title: title?.trim() || "untitled thread",
+    topic: topic?.trim() || title?.trim() || "new reflection",
+    kind: "exploration" as const,
+    opening: `we can hold this as its own room. what is most alive inside ${topic?.trim() || title?.trim() || "this thread"} right now?`,
+  };
+};
 
 export { coerceWorkspaceState } from "@/lib/identitree/state";
 
@@ -39,11 +87,15 @@ export const createThreadInWorkspace = ({
   title,
   topic,
   kind,
+  starter,
+  linkedNodeId,
 }: {
   workspaceInput?: unknown;
   title?: string;
   topic?: string;
   kind?: ThreadKind;
+  starter?: CheckInKind;
+  linkedNodeId?: string;
 }) => {
   const workspace = coerceWorkspaceState(workspaceInput ?? createSeededWorkspace());
 
@@ -62,10 +114,15 @@ export const createThreadInWorkspace = ({
     return { workspace: { ...next, checkInCards: buildCheckInCards(next) } };
   }
 
+  const linkedNodeLabel = linkedNodeId
+    ? workspace.tree.nodes.find((node) => node.id === linkedNodeId)?.label
+    : undefined;
+  const preset = buildThreadPreset({ starter, topic, title, linkedNodeLabel });
+
   const nextThread = createThread({
-    title: title?.trim() || "untitled thread",
-    topic: topic?.trim() || title?.trim() || "new reflection",
-    kind: kind ?? "exploration",
+    title: preset.title,
+    topic: preset.topic,
+    kind: kind ?? preset.kind,
     index: workspace.threads.length,
   });
 
@@ -73,7 +130,7 @@ export const createThreadInWorkspace = ({
     {
       id: createId("msg"),
       role: "mirror",
-      text: `we can hold this as its own room. what is most alive inside ${nextThread.topic} right now?`,
+      text: preset.opening,
       createdAt: nowIso(),
       extraction: null,
     },

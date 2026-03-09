@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     title: parsed.title,
     topic: parsed.topic,
     kind: parsed.kind,
+    starter: parsed.starter,
+    linkedNodeId: parsed.linkedNodeId,
   });
 
   return NextResponse.json(result);
