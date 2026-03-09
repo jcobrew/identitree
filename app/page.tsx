@@ -30,6 +30,19 @@ import { ONBOARDING_FIELDS } from "@/lib/identitree/types";
 
 const previewCamera = { x: 0, y: -20, zoom: 0.92 };
 
+const formatTouchedLabel = (value: string) => {
+  const date = new Date(value);
+  const diff = Date.now() - date.getTime();
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / 86_400_000);
+
+  if (hours < 1) return "touched just now";
+  if (hours < 24) return `touched ${hours}h ago`;
+  if (days === 1) return "touched yesterday";
+  if (days < 7) return `touched ${days}d ago`;
+  return `touched ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+};
+
 const nextField = (workspace: WorkspaceState): OnboardingField | null => {
   for (const field of ONBOARDING_FIELDS) {
     if (!workspace.profile[field].trim()) return field;
@@ -159,6 +172,68 @@ export default function Home() {
 
   const currentDraft = currentThread ? currentWorkspace.drafts[currentThread.id] ?? "" : "";
   const landingCards = currentWorkspace.checkInCards.length > 0 ? currentWorkspace.checkInCards : FIRST_TIME_CARDS;
+  const activeNonArchivedThreads = useMemo(
+    () => currentWorkspace.threads.filter((thread) => !thread.archived).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [currentWorkspace.threads],
+  );
+  const recentThreads = useMemo(
+    () =>
+      activeNonArchivedThreads.slice(0, 4).map((thread) => ({
+        id: thread.id,
+        title: thread.title,
+        topic: thread.topic,
+        preview: thread.preview,
+        nodeCount: thread.linkedNodeIds.length,
+        touchedLabel: formatTouchedLabel(thread.updatedAt),
+        isActive: thread.id === currentWorkspace.activeThreadId,
+      })),
+    [activeNonArchivedThreads, currentWorkspace.activeThreadId],
+  );
+  const bridgeNode = useMemo(
+    () => currentWorkspace.tree.nodes.find((node) => node.sourceThreadIds.length > 1 && !node.archived) ?? null,
+    [currentWorkspace.tree.nodes],
+  );
+  const observationNotes = useMemo(
+    () => currentWorkspace.observations.slice(0, 2).map((observation) => ({ title: observation.title, body: observation.body })),
+    [currentWorkspace.observations],
+  );
+  const landingNotes = hasPersonalProgress
+    ? observationNotes.length > 0
+      ? observationNotes
+      : SAMPLE_INSIGHTS.map((insight, index) => ({ title: index === 0 ? "signal" : "pattern", body: insight }))
+    : SAMPLE_INSIGHTS.map((insight, index) => ({ title: index === 0 ? "signal" : "pattern", body: insight }));
+  const continueCard = landingCards.find((card) => card.kind === "continue") ?? landingCards[0] ?? null;
+  const secondaryCard =
+    landingCards.find((card) => card.kind === "tree-prompted") ??
+    landingCards.find((card) => card.kind === "catch-up") ??
+    landingCards[1] ??
+    null;
+  const featuredEntry = continueCard
+    ? {
+        title: recentThreads[0] ? `resume ${recentThreads[0].title}` : continueCard.title,
+        body: recentThreads[0]?.preview || continueCard.body,
+        actionLabel: continueCard.actionLabel,
+        meta: recentThreads[0]
+          ? `${recentThreads[0].nodeCount} ${recentThreads[0].nodeCount === 1 ? "node" : "nodes"} · ${recentThreads[0].touchedLabel}`
+          : "pick up the room that still has heat in it",
+      }
+    : {
+        title: "start the first thread",
+        body: "one honest room is enough for the tree to begin taking shape.",
+        actionLabel: "start reflection",
+        meta: "the mirror will hold the first thread for you",
+      };
+  const secondaryEntry = secondaryCard
+    ? {
+        title: secondaryCard.title,
+        body:
+          secondaryCard.kind === "tree-prompted" && bridgeNode
+            ? `${bridgeNode.label} is being fed by ${bridgeNode.sourceThreadIds.length} threads already. follow it if you want the clearest signal.`
+            : secondaryCard.body,
+        actionLabel: secondaryCard.actionLabel,
+        meta: secondaryCard.kind === "tree-prompted" ? "follow the strongest signal in the tree" : "take a broader re-entry pass",
+      }
+    : null;
 
   const openThread = (threadId: string) => {
     const thread = currentWorkspace.threads.find((entry) => entry.id === threadId);
@@ -302,7 +377,12 @@ export default function Home() {
         <LandingView
           isReturning={hasPersonalProgress}
           cards={landingCards}
-          sampleInsights={SAMPLE_INSIGHTS}
+          featuredCard={continueCard}
+          secondaryCard={secondaryCard}
+          featuredEntry={featuredEntry}
+          secondaryEntry={secondaryEntry}
+          notes={landingNotes}
+          recentThreads={recentThreads}
           treePreview={
             <TreeMap
               nodes={hasPersonalProgress && liveTree ? treeNodes : SAMPLE_TREE_NODES}
@@ -319,6 +399,7 @@ export default function Home() {
           onOpenTree={() => updateLocalWorkspace((current) => ({ ...current, view: "tree" }))}
           onOpenThreadSwitcher={() => setThreadSwitcherOpen(true)}
           onCardPress={handleCardPress}
+          onOpenRecentThread={openThread}
         />
       ) : (
         <div className={`min-h-screen ${currentWorkspace.view === "tree" ? "bg-[#0b1219]" : "bg-[#f6f3ed]"}`}>
