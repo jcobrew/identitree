@@ -114,9 +114,10 @@ export const createThreadInWorkspace = ({
     return { workspace: { ...next, checkInCards: buildCheckInCards(next) } };
   }
 
-  const linkedNodeLabel = linkedNodeId
-    ? workspace.tree.nodes.find((node) => node.id === linkedNodeId)?.label
+  const linkedNode = linkedNodeId
+    ? workspace.tree.nodes.find((node) => node.id === linkedNodeId)
     : undefined;
+  const linkedNodeLabel = linkedNode?.label;
   const preset = buildThreadPreset({ starter, topic, title, linkedNodeLabel });
 
   const nextThread = createThread({
@@ -136,6 +137,7 @@ export const createThreadInWorkspace = ({
     },
   ];
   nextThread.preview = nextThread.messages[0].text;
+  nextThread.linkedNodeIds = linkedNode ? [linkedNode.id] : [];
 
   const next = {
     ...workspace,
@@ -174,9 +176,16 @@ export const updateThreadInWorkspace = ({
     };
   });
 
+  const activeThreadWasArchived = workspace.activeThreadId === threadId && archived === true;
+  const fallbackThreadId = activeThreadWasArchived
+    ? threads.find((thread) => thread.id !== threadId && !thread.archived)?.id ?? null
+    : workspace.activeThreadId;
+
   const next = {
     ...workspace,
     threads,
+    activeThreadId: fallbackThreadId,
+    view: fallbackThreadId ? workspace.view : "landing" as const,
     lastActiveAt: nowIso(),
   };
 

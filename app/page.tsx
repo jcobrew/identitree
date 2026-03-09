@@ -238,6 +238,11 @@ export default function Home() {
   };
 
   const handleCardPress = (card: CheckInCard) => {
+    if (card.nodeId && currentWorkspace.hasCompletedOnboarding) {
+      void createStarterThread("tree-prompted", card.nodeId);
+      return;
+    }
+
     if (card.nodeId) {
       updateLocalWorkspace((current) => ({
         ...current,

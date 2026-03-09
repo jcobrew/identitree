@@ -37,10 +37,18 @@ export function ThreadSwitcherModal({
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("");
   const [kind, setKind] = useState<ThreadKind>("exploration");
+  const [query, setQuery] = useState("");
 
   const sortedThreads = useMemo(
-    () => [...threads].sort((a, b) => Number(a.archived) - Number(b.archived) || b.updatedAt.localeCompare(a.updatedAt)),
-    [threads],
+    () =>
+      [...threads]
+        .filter((thread) => {
+          const normalizedQuery = query.trim().toLowerCase();
+          if (!normalizedQuery) return true;
+          return `${thread.title} ${thread.topic} ${thread.preview}`.toLowerCase().includes(normalizedQuery);
+        })
+        .sort((a, b) => Number(a.archived) - Number(b.archived) || b.updatedAt.localeCompare(a.updatedAt)),
+    [query, threads],
   );
 
   return (
@@ -54,6 +62,12 @@ export function ThreadSwitcherModal({
         </ModalHeader>
         <ModalBody className="grid gap-6 py-6 lg:grid-cols-[minmax(0,1.15fr)_320px]">
           <div className="space-y-3">
+            <Input
+              value={query}
+              onValueChange={setQuery}
+              placeholder="search threads"
+              classNames={{ inputWrapper: "bg-white border border-black/8 shadow-none" }}
+            />
             {sortedThreads.map((thread) => (
               <Card
                 key={thread.id}
@@ -92,6 +106,11 @@ export function ThreadSwitcherModal({
                 </CardBody>
               </Card>
             ))}
+            {sortedThreads.length === 0 && (
+              <div className="rounded-[24px] bg-[#f3f0e8] px-4 py-4 text-sm leading-7 text-black/55 ring-1 ring-black/5">
+                no threads match that search.
+              </div>
+            )}
           </div>
 
           <Card className="border border-black/6 bg-[#faf7f1] shadow-none">
