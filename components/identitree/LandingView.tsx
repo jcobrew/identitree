@@ -38,6 +38,7 @@ export function LandingView({
   treePreview,
   onStartReflection,
   onOpenTree,
+  onOpenTributeDemo,
   onOpenThreadSwitcher,
   onCardPress,
   onOpenRecentThread,
@@ -53,6 +54,7 @@ export function LandingView({
   treePreview: React.ReactNode;
   onStartReflection: () => void;
   onOpenTree: () => void;
+  onOpenTributeDemo: () => void;
   onOpenThreadSwitcher: () => void;
   onCardPress: (card: CheckInCard) => void;
   onOpenRecentThread: (threadId: string) => void;
@@ -80,6 +82,9 @@ export function LandingView({
             </Button>
             <Button radius="full" variant="flat" className="bg-black/5 text-[#171411]" onPress={onOpenTree}>
               open tree
+            </Button>
+            <Button radius="full" variant="flat" className="bg-black/5 text-[#171411]" onPress={onOpenTributeDemo}>
+              see builder journey
             </Button>
             <Button radius="full" variant="light" className="text-[#171411]" onPress={onOpenThreadSwitcher}>
               threads

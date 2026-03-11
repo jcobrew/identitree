@@ -71,6 +71,10 @@ export function TreeMap({
   camera,
   interactive = false,
   compact = false,
+  traceConnectedSelection = true,
+  highlightNodeIds,
+  highlightEdgeIds,
+  selectableNodeIds,
   onCameraChange,
   onSelectNode,
 }: {
@@ -81,6 +85,10 @@ export function TreeMap({
   camera: TreeCamera;
   interactive?: boolean;
   compact?: boolean;
+  traceConnectedSelection?: boolean;
+  highlightNodeIds?: string[];
+  highlightEdgeIds?: string[];
+  selectableNodeIds?: string[];
   onCameraChange?: (camera: TreeCamera) => void;
   onSelectNode?: (nodeId: string) => void;
 }) {
@@ -89,7 +97,13 @@ export function TreeMap({
 
   const positions = useMemo(() => buildTreePositions(nodes), [nodes]);
   const threadColorMap = useMemo(() => Object.fromEntries(threads.map((thread) => [thread.id, thread.color] as const)), [threads]);
-  const tracedNodeIds = useMemo(() => traceNodeIds(selectedNodeId, edges), [edges, selectedNodeId]);
+  const tracedNodeIds = useMemo(() => {
+    if (!selectedNodeId) return new Set<string>();
+    return traceConnectedSelection ? traceNodeIds(selectedNodeId, edges) : new Set<string>([selectedNodeId]);
+  }, [edges, selectedNodeId, traceConnectedSelection]);
+  const highlightedNodeIds = useMemo(() => new Set(highlightNodeIds ?? []), [highlightNodeIds]);
+  const highlightedEdgeIds = useMemo(() => new Set(highlightEdgeIds ?? []), [highlightEdgeIds]);
+  const selectableIds = useMemo(() => new Set(selectableNodeIds ?? []), [selectableNodeIds]);
   const visibleEdges = useMemo(() => edges.filter((edge) => edge.status !== "rejected"), [edges]);
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
@@ -181,24 +195,26 @@ export function TreeMap({
               ? "#67c3ff"
               : threadColorMap[fromNode.firstSourceThreadId] ?? threadColorMap[toNode.firstSourceThreadId] ?? "#b7c1cd";
             const traced = tracedNodeIds.has(edge.fromId) && tracedNodeIds.has(edge.toId);
+            const highlighted = highlightedEdgeIds.size > 0 && highlightedEdgeIds.has(edge.id);
+            const dimmed = highlightedEdgeIds.size > 0 && !highlighted;
             const path = structuralPathForNodes({ from: fromPoint, to: toPoint, fromType: fromNode.type, toType: toNode.type });
 
             return (
-              <g key={edge.id} opacity={traced ? 1 : edge.crossThread ? 0.45 : 0.26}>
+              <g key={edge.id} opacity={highlighted ? 1 : traced ? 0.94 : dimmed ? 0.12 : edge.crossThread ? 0.45 : 0.26}>
                 <path
                   d={path}
                   fill="none"
                   stroke={color}
-                  strokeWidth={edge.crossThread ? 1.5 : 1.1}
+                  strokeWidth={highlighted ? (edge.crossThread ? 2.2 : 1.9) : edge.crossThread ? 1.5 : 1.1}
                   strokeDasharray={edge.crossThread ? "8 10" : undefined}
                   strokeLinecap="round"
                 />
-                {traced && (
+                {(traced || highlighted) && (
                   <motion.path
                     d={path}
                     fill="none"
                     stroke={color}
-                    strokeWidth={edge.crossThread ? 2.6 : 2.1}
+                    strokeWidth={highlighted ? (edge.crossThread ? 3.1 : 2.8) : edge.crossThread ? 2.6 : 2.1}
                     strokeLinecap="round"
                     strokeDasharray="12 24"
                     animate={{ strokeDashoffset: [0, -160], opacity: [0.3, 0.95, 0.3] }}
@@ -215,6 +231,9 @@ export function TreeMap({
             const style = nodeStyle[node.type];
             const traced = tracedNodeIds.has(node.id);
             const selected = selectedNodeId === node.id;
+            const highlighted = highlightedNodeIds.size > 0 && highlightedNodeIds.has(node.id);
+            const dimmed = highlightedNodeIds.size > 0 && !highlighted;
+            const selectable = selectableIds.size === 0 || selectableIds.has(node.id);
             const accent = node.sourceThreadIds.length > 1 ? "#67c3ff" : threadColorMap[node.firstSourceThreadId] ?? style.stroke;
             const r = node.type === "self" ? 24 : 16;
 
@@ -223,15 +242,31 @@ export function TreeMap({
                 key={node.id}
                 transform={`translate(${point.x} ${point.y})`}
                 data-node="true"
-                className={onSelectNode ? "cursor-pointer" : undefined}
-                onClick={() => onSelectNode?.(node.id)}
+                className={onSelectNode && selectable ? "cursor-pointer" : undefined}
+                opacity={dimmed ? 0.34 : 1}
+                onClick={() => {
+                  if (!selectable) return;
+                  onSelectNode?.(node.id);
+                }}
               >
-                <circle r={r + (selected ? 7 : traced ? 4 : 0)} fill="none" stroke={accent} strokeWidth={selected ? 2.4 : 1.2} opacity={selected ? 0.85 : traced ? 0.45 : 0} />
-                <circle r={r} fill={style.fill} stroke={accent} strokeWidth={selected ? 2.4 : 1.5} />
+                <circle
+                  r={r + (selected ? 7 : highlighted ? 5 : traced ? 4 : 0)}
+                  fill="none"
+                  stroke={accent}
+                  strokeWidth={selected || highlighted ? 2.4 : 1.2}
+                  opacity={selected ? 0.85 : highlighted ? 0.58 : traced ? 0.45 : 0}
+                />
+                <circle r={r} fill={style.fill} stroke={accent} strokeWidth={selected || highlighted ? 2.4 : 1.5} />
                 <text y={1} textAnchor="middle" dominantBaseline="middle" fontSize={9.5} letterSpacing="0.12em" fontWeight={700} fill={style.text}>
                   {node.type === "self" ? "self" : node.type.slice(0, 2).toUpperCase()}
                 </text>
-                <text y={r + 18} textAnchor="middle" fontSize={compact ? 11 : 12} fill="#eef2f5" opacity={traced || selected || compact ? 0.9 : 0.68}>
+                <text
+                  y={r + 18}
+                  textAnchor="middle"
+                  fontSize={compact ? 11 : 12}
+                  fill="#eef2f5"
+                  opacity={highlighted || traced || selected || compact ? 0.94 : 0.68}
+                >
                   {node.label}
                 </text>
               </g>

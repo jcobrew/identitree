@@ -253,9 +253,9 @@ export const buildCheckInCards = (workspace: WorkspaceState): CheckInCard[] => {
           {
             id: "card-open-tree",
             kind: "tree-prompted",
-            title: "peek at the tree",
-            body: "the demo tree shows how interests, identities, quests, skills, and actions connect.",
-            actionLabel: "open tree",
+            title: "see the builder journey",
+            body: "walk through how make something turns setup, build, fixing, and shipping into a builder identity.",
+            actionLabel: "see builder journey",
           },
         ]
       : [];

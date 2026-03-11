@@ -3,6 +3,7 @@
 import { Card, CardBody, Spinner } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { IntroDemoView } from "@/components/identitree/IntroDemoView";
 import { LandingView } from "@/components/identitree/LandingView";
 import { ThreadSwitcherModal } from "@/components/identitree/ThreadSwitcherModal";
 import { ThreadSettingsModal } from "@/components/identitree/ThreadSettingsModal";
@@ -10,6 +11,7 @@ import { ThreadWorkspace } from "@/components/identitree/ThreadWorkspace";
 import { TreeMap } from "@/components/identitree/TreeMap";
 import { TreeWorkspace } from "@/components/identitree/TreeWorkspace";
 import { WorkspaceHeader } from "@/components/identitree/WorkspaceHeader";
+import { buildCheckInCards } from "@/lib/identitree/architect";
 import {
   DEMO_WORKSPACE,
   FIRST_TIME_CARDS,
@@ -18,6 +20,9 @@ import {
   SAMPLE_INSIGHTS,
   SAMPLE_TREE_EDGES,
   SAMPLE_TREE_NODES,
+  TRIBUTE_DEMO_CHAPTERS,
+  createBuilderStarterWorkspace,
+  createFreshWorkspaceFromTribute,
 } from "@/lib/identitree/seed";
 import { readWorkspaceFromStorage, writeWorkspaceToStorage } from "@/lib/identitree/storage";
 import type {
@@ -55,6 +60,8 @@ export default function Home() {
   const [capabilities, setCapabilities] = useState({ anthropic: false, supabase: false });
   const [threadSwitcherOpen, setThreadSwitcherOpen] = useState(false);
   const [threadSettingsOpen, setThreadSettingsOpen] = useState(false);
+  const [tributeChapterIndex, setTributeChapterIndex] = useState(0);
+  const [tributeSelectedNodeId, setTributeSelectedNodeId] = useState<string | null>(TRIBUTE_DEMO_CHAPTERS[0]?.focusNodeIds[0] ?? null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -119,15 +126,17 @@ export default function Home() {
   const hasPersonalProgress =
     currentWorkspace.hasCompletedOnboarding ||
     currentWorkspace.threads.some((thread) => thread.messages.some((message) => message.role === "user"));
+  const showIntroDemo = currentWorkspace.view === "tribute" || (!hasPersonalProgress && !currentWorkspace.hasSeenTributeDemo);
   const currentThread =
     currentWorkspace.threads.find((thread) => thread.id === currentWorkspace.activeThreadId) ??
     currentWorkspace.threads[0] ??
     null;
+  const currentTributeChapter = TRIBUTE_DEMO_CHAPTERS[tributeChapterIndex] ?? TRIBUTE_DEMO_CHAPTERS[0];
 
-  const liveTree = currentWorkspace.hasCompletedOnboarding;
-  const treeNodes = liveTree ? currentWorkspace.tree.nodes : SAMPLE_TREE_NODES;
-  const treeEdges = liveTree ? currentWorkspace.tree.edges : SAMPLE_TREE_EDGES;
-  const treeThreads = liveTree ? currentWorkspace.threads : SAMPLE_THREADS;
+  const showingPersonalTree = currentWorkspace.hasCompletedOnboarding || currentWorkspace.starterMode === "fresh";
+  const treeNodes = showingPersonalTree ? currentWorkspace.tree.nodes : SAMPLE_TREE_NODES;
+  const treeEdges = showingPersonalTree ? currentWorkspace.tree.edges : SAMPLE_TREE_EDGES;
+  const treeThreads = showingPersonalTree ? currentWorkspace.threads : SAMPLE_THREADS;
 
   const selectedNode = treeNodes.find((node) => node.id === currentWorkspace.selectedNodeId) ?? null;
   const selectedNodeSourceThreads = selectedNode
@@ -143,6 +152,19 @@ export default function Home() {
         (node) => node.id !== selectedNode.id && node.type === selectedNode.type && !node.archived,
       )
     : [];
+  const tributeSelectedNode =
+    SAMPLE_TREE_NODES.find((node) => node.id === tributeSelectedNodeId) ??
+    SAMPLE_TREE_NODES.find((node) => node.id === currentTributeChapter?.focusNodeIds[0]) ??
+    null;
+
+  useEffect(() => {
+    if (!showIntroDemo || !currentTributeChapter) return;
+    setTributeSelectedNodeId((currentId) =>
+      currentId && currentTributeChapter.focusNodeIds.includes(currentId)
+        ? currentId
+        : currentTributeChapter.focusNodeIds[0] ?? null,
+    );
+  }, [currentTributeChapter, showIntroDemo]);
 
   const threadSuggestions = useMemo(() => {
     if (!currentThread) return [];
@@ -265,6 +287,39 @@ export default function Home() {
     });
   };
 
+  const openTributeDemo = (index = 0) => {
+    const clampedIndex = Math.max(0, Math.min(index, TRIBUTE_DEMO_CHAPTERS.length - 1));
+    setTributeChapterIndex(clampedIndex);
+    setTributeSelectedNodeId(TRIBUTE_DEMO_CHAPTERS[clampedIndex]?.focusNodeIds[0] ?? null);
+    updateLocalWorkspace((current) => ({
+      ...current,
+      view: "tribute",
+    }));
+  };
+
+  const closeTributeDemo = () => {
+    updateLocalWorkspace((current) => ({
+      ...current,
+      view: "landing",
+      hasSeenTributeDemo: true,
+      selectedNodeId: null,
+    }));
+  };
+
+  const startFreshFromTribute = () => {
+    const next = createFreshWorkspaceFromTribute();
+    setWorkspace({ ...next, checkInCards: buildCheckInCards(next) });
+    setTributeChapterIndex(0);
+    setTributeSelectedNodeId(TRIBUTE_DEMO_CHAPTERS[0]?.focusNodeIds[0] ?? null);
+  };
+
+  const startBuilderFromTribute = () => {
+    const next = createBuilderStarterWorkspace();
+    setWorkspace({ ...next, checkInCards: buildCheckInCards(next) });
+    setTributeChapterIndex(0);
+    setTributeSelectedNodeId(TRIBUTE_DEMO_CHAPTERS[0]?.focusNodeIds[0] ?? null);
+  };
+
   const createThread = async (payload: { title: string; topic: string; kind: ThreadKind }) => {
     await performWorkspaceRequest("/api/threads", {
       method: "POST",
@@ -297,7 +352,7 @@ export default function Home() {
   };
 
   const patchSelectedNode = async (payload: { label?: string; insight?: string; archived?: boolean; mergeIntoId?: string }) => {
-    if (!selectedNode || !liveTree) return;
+    if (!selectedNode || !showingPersonalTree) return;
     await performWorkspaceRequest(`/api/tree/nodes/${selectedNode.id}`, {
       method: "PATCH",
       body: JSON.stringify({ state: currentWorkspace, ...payload }),
@@ -305,7 +360,7 @@ export default function Home() {
   };
 
   const reviewEdge = async (edgeId: string, decision: "accept" | "reject") => {
-    if (!liveTree) return;
+    if (!showingPersonalTree) return;
     await performWorkspaceRequest(`/api/tree/edges/${edgeId}/review`, {
       method: "POST",
       body: JSON.stringify({ state: currentWorkspace, decision }),
@@ -334,7 +389,7 @@ export default function Home() {
 
     if (!currentWorkspace.hasCompletedOnboarding) {
       if (card.kind === "tree-prompted") {
-        updateLocalWorkspace((current) => ({ ...current, view: "tree" }));
+        openTributeDemo();
         return;
       }
 
@@ -373,7 +428,23 @@ export default function Home() {
 
   return (
     <div className="min-h-screen font-[family-name:var(--font-manrope)] text-[#171411]">
-      {currentWorkspace.view === "landing" ? (
+      {showIntroDemo ? (
+        <IntroDemoView
+          chapter={currentTributeChapter}
+          chapterIndex={tributeChapterIndex}
+          chapterCount={TRIBUTE_DEMO_CHAPTERS.length}
+          nodes={SAMPLE_TREE_NODES}
+          edges={SAMPLE_TREE_EDGES}
+          threads={SAMPLE_THREADS}
+          selectedNode={tributeSelectedNode}
+          onBack={() => setTributeChapterIndex((current) => Math.max(0, current - 1))}
+          onNext={() => setTributeChapterIndex((current) => Math.min(TRIBUTE_DEMO_CHAPTERS.length - 1, current + 1))}
+          onSkip={closeTributeDemo}
+          onSelectNode={setTributeSelectedNodeId}
+          onStartFresh={startFreshFromTribute}
+          onStartBuilderStarter={startBuilderFromTribute}
+        />
+      ) : currentWorkspace.view === "landing" ? (
         <LandingView
           isReturning={hasPersonalProgress}
           cards={landingCards}
@@ -385,9 +456,9 @@ export default function Home() {
           recentThreads={recentThreads}
           treePreview={
             <TreeMap
-              nodes={hasPersonalProgress && liveTree ? treeNodes : SAMPLE_TREE_NODES}
-              edges={hasPersonalProgress && liveTree ? treeEdges : SAMPLE_TREE_EDGES}
-              threads={hasPersonalProgress && liveTree ? treeThreads : SAMPLE_THREADS}
+              nodes={showingPersonalTree ? treeNodes : SAMPLE_TREE_NODES}
+              edges={showingPersonalTree ? treeEdges : SAMPLE_TREE_EDGES}
+              threads={showingPersonalTree ? treeThreads : SAMPLE_THREADS}
               selectedNodeId={null}
               camera={previewCamera}
               compact
@@ -397,6 +468,7 @@ export default function Home() {
             void startReflection();
           }}
           onOpenTree={() => updateLocalWorkspace((current) => ({ ...current, view: "tree" }))}
+          onOpenTributeDemo={() => openTributeDemo()}
           onOpenThreadSwitcher={() => setThreadSwitcherOpen(true)}
           onCardPress={handleCardPress}
           onOpenRecentThread={openThread}
@@ -476,7 +548,7 @@ export default function Home() {
                   edges={treeEdges}
                   threads={treeThreads}
                   camera={currentWorkspace.treeCamera}
-                  editable={liveTree}
+                  editable={showingPersonalTree}
                   selectedNode={selectedNode}
                   selectedNodeSourceThreads={selectedNodeSourceThreads}
                   selectedNodeBridgeEdges={selectedNodeBridgeEdges}

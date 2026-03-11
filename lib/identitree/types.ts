@@ -6,8 +6,11 @@ export type NodeType = (typeof NODE_TYPES)[number];
 export const THREAD_KINDS = ["domain", "quest", "exploration", "reflection"] as const;
 export type ThreadKind = (typeof THREAD_KINDS)[number];
 
-export const WORKSPACE_VIEWS = ["landing", "thread", "tree"] as const;
+export const WORKSPACE_VIEWS = ["tribute", "landing", "thread", "tree"] as const;
 export type WorkspaceView = (typeof WORKSPACE_VIEWS)[number];
+
+export const STARTER_MODES = ["fresh", "builder"] as const;
+export type StarterMode = (typeof STARTER_MODES)[number];
 
 export const CHECKIN_KINDS = ["light", "catch-up", "tree-prompted", "continue"] as const;
 export type CheckInKind = (typeof CHECKIN_KINDS)[number];
@@ -99,12 +102,28 @@ export type TreeCamera = {
   zoom: number;
 };
 
+export type DemoChapter = {
+  id: string;
+  title: string;
+  body: string;
+  treeNote: string;
+  skillLabel: string;
+  skillNote: string;
+  questLabel: string;
+  questNote: string;
+  focusNodeIds: string[];
+  focusEdgeIds: string[];
+  camera: TreeCamera;
+};
+
 export type WorkspaceState = {
   version: number;
   view: WorkspaceView;
+  hasSeenTributeDemo: boolean;
   activeThreadId: string | null;
   selectedNodeId: string | null;
   graphPreviewOpen: boolean;
+  starterMode: StarterMode | null;
   profile: UserProfile;
   hasCompletedOnboarding: boolean;
   accountMode: "local-preview" | "cloud-ready";
